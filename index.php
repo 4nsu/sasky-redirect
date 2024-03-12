@@ -9,14 +9,38 @@
         "AA12P" => "http://www.google.fi/"
     );
 
-    // Poimitaan URL-osoitteesta hash-parametrin arvo.
-    $hash = $_GET["hash"];
-    
-    // Haetaan $hash-muuttujan arvoa vastaava osoite.
-    $url = $osoitteet[$hash];
+    // Tarkistetaan, löytyykö URL:ista hash-parametri.
+    if (isset($_GET["hash"])) {
 
-    // Edelleenohjataan hash-tunnusta vastaavaan osoitteeseen.
-    header("Location: " . $url);
-    exit;
+        // hash-parametrille löytyi arvo, 
+        // poimitaan se muuttujaan.
+        $hash = $_GET["hash"];
+
+        // Tarkistetaan, onko taulukossa arvoa hash-muuttujan arvolla.
+        if (isset($osoitteet[$hash])) {
+
+            // Taulukossa on hash-muuttujaa vastaava avain,
+            // haetaan osoite.
+            $url = $osoitteet[$hash];
+
+            // Edelleenohjataan taulukosta löytyvään osoitteeseen.
+            header("Location: " . $url);
+            exit;
+
+        } else {
+
+            // Taulukossa ei ole hash-muuttujaa vastaavaa avainta,
+            // tulostetaan virheilmoitus.
+            echo "Väärä tunniste :(";
+
+        }
+
+    } else {
+
+        // hash-parametrille ei löytynyt arvoa,
+        // tulostetaan käyttäjälle esittelyteksti.
+        echo "Tämä on osoitteiden lyhentäjä.<br>Odota maltilla, tänne tulee tulevaisuudessa lisää toiminnallisuutta.";
+
+    }
 
 ?>

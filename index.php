@@ -1,46 +1,72 @@
 <?php
-    // Luodaan osoitteet-taulukko
-    $osoitteet = array(
-        "NG5TG" => "https://www.w3schools.com/php/",
-        "R7E7L" => "https://www.php.net/manual/en/index.php",
-        "S44E8" => "https://thevalleyofcode.com/php/",
-        "UDCJ9" => "https://phpapprentice.com/",
-        "ZZU1M" => "https://phptherightway.com/",
-        "AA12P" => "http://www.google.fi/"
-    );
 
-    // Tarkistetaan, löytyykö URL:ista hash-parametri.
-    if (isset($_GET["hash"])) {
+// Määritellään yhteys-muuttujat.
+// Tietokannan nimi, käyttäjä ja salasana, haetaan palvelimen ympäristömuuttujista.
+$dsn = "mysql:host=localhost;dbname={$_SERVER['DB_DATABASE']};charset=utf8mb4";
+$user = $_SERVER['DB_USERNAME'];
+$pwd = $_SERVER['DB_PASSWORD'];
+$options = [
+    // Mahdolliset tietokantalauseiden virheet näkyville.
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    // Oletus hakutulos assosiatiiviseksi taulukoksi.
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    // Poista valmisteltujen lauseiden emulointi käytöstä.
+    PDO::ATTR_EMULATE_PREPARES => false
+];
 
-        // hash-parametrille löytyi arvo, 
-        // poimitaan se muuttujaan.
-        $hash = $_GET["hash"];
 
-        // Tarkistetaan, onko taulukossa arvoa hash-muuttujan arvolla.
-        if (isset($osoitteet[$hash])) {
+// Löytyykö urlista hash-parametri.
+if (isset($_GET["hash"])) {
 
-            // Taulukossa on hash-muuttujaa vastaava avain,
-            // haetaan osoite.
-            $url = $osoitteet[$hash];
+    // Tallennetaan hash-arvo muuttujaan.
+    $hash = $_GET["hash"];
 
-            // Edelleenohjataan taulukosta löytyvään osoitteeseen.
+    try {
+
+        // Tietokantayhteyden avaus.
+        $yhteys = new PDO($dsn, $user, $pwd, $options);
+
+        // Tunnisteen haku tietokannasta.
+        // Kyselyn valmistelu.
+        $kysely = "SELECT url FROM osoite WHERE tunniste = ?";
+        $lause = $yhteys->prepare($kysely);
+        // Sidotaan $hash -tunniste kyselyn parametriin.
+        $lause->bindValue(1, $hash);
+        // Ja suoritetaan haku.
+        $lause->execute();
+        // Hakutuloksen rivi tallennetaan $tulos -muuttujaan.
+        $tulos = $lause->fetch();
+
+        // Tarkistetaan kyselyn tulos.
+
+        // Löytyykö kannasta riviä hash-tunnisteella.
+        if ($tulos) {
+
+            // Rivi löytyi, haetaan osoite.
+            $url = $tulos['url'];
+
+            // Edelleenohjataan tietokannasta löytyvään osoitteeseen.
             header("Location: " . $url);
             exit;
 
         } else {
 
-            // Taulukossa ei ole hash-muuttujaa vastaavaa avainta,
+            // Kannassa ei ole hash-muuttujaa vastaavaa tunnistetta,
             // tulostetaan virheilmoitus.
             echo "Väärä tunniste :(";
 
         }
 
-    } else {
-
-        // hash-parametrille ei löytynyt arvoa,
-        // tulostetaan käyttäjälle esittelyteksti.
-        echo "Tämä on osoitteiden lyhentäjä.<br>Odota maltilla, tänne tulee tulevaisuudessa lisää toiminnallisuutta.";
-
+    } catch (PDOException $e) {
+        echo $e->getMessage();
     }
+
+} else {
+
+    // hash-parametrille ei löytynyt arvoa,
+    // tulostetaan käyttäjälle esittelyteksti.
+    echo "Tämä on osoitteiden lyhentäjä.<br>Odota maltilla, tänne tulee tulevaisuudessa lisää toiminnallisuutta.";
+
+}
 
 ?>

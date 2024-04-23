@@ -1,3 +1,5 @@
+# Täälä ohjeita web-palvelimelle.
+
 # uudelleenohjauksen säännöt otetaan käyttöön
 RewriteEngine On
 # jos pyynnössä oleva tiedosto on olemassa, Rewriterule-sääntöä ei sovelleta

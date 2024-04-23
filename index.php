@@ -1,7 +1,11 @@
 <?php
 
+// Tuodaan funktiot.
+require_once('utils.php');
+
 // Pagestatus määrittelee mikä sivu tulostetaan.
 //  0 = etusivu
+//  1 = lisätyn osoitteen tietosivu
 // -1 = virheellinen tunniste
 // -2 = tietokantavirhe
 $pagestatus = 0;
@@ -23,6 +27,58 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES => false
 ];
 
+// Tarkistetaan onko lyhennys-nappia painettu.
+if (isset($_POST["shorten"])) {
+
+    $url = $_POST["url"];
+
+    try {
+        // Tietokantayhteyden avaus.
+        $yhteys = new PDO($dsn, $user, $pwd, $options);    
+        
+        // Valmistellaan kysely joka tarkastaa löytyykö lyhytosoite kannasta.
+        $stmt = $yhteys->prepare("SELECT 1 FROM osoite WHERE tunniste = ?");
+      
+        // Esitellään hash muuttuja, johon lyhytosoite tullaan sijoittamaan.
+        $hash = "";
+
+        // Luodaan lyhytosoitteita niin kauan kunnes löytyy
+        // sellainen jota kannassa ei vielä ole.
+        while ($hash == "") {
+
+            // Muodostetaan lyhytosoite-ehdokas.
+            $generated = generateHash(5);
+
+            // Tarkistetaan, löytyykö lyhytosoitetta kannasta.
+            $stmt->execute([$generated]);
+            $result = $stmt->fetchColumn();
+            if (!$result) {
+                // Lyhytosoitetta ei ole kannassa, tallennetaan sen muuttujaan.
+                $hash = $generated;
+            }
+
+        }
+
+        // Haetaan käyttäjän ip-osoite.
+        $ip = $_SERVER['REMOTE_ADDR'];
+
+        // Alustetaan kantaan lisäys.
+        $stmt2 = $yhteys->prepare("INSERT INTO osoite (tunniste, url, ip) VALUES (?, ?, ?)");
+
+        // Suoritetaan muuttujien arvoilla.
+        $stmt2->execute([$hash, $url, $ip]);
+
+        // Osoite on lisätty kantaan, muodostetaan käyttäjälle tietosivu.
+        $pagestatus = 1;
+        $shorturl = $baseurl . $hash;
+        
+    } catch (PDOException $e) {
+        // Virhe avaamisessa, tulostetaan virheilmoitus.
+        $pagestatus = -2;
+        $error = $e->getMessage();
+    }    
+
+}
 
 // Löytyykö urlista hash-parametri.
 if (isset($_GET["hash"])) {
@@ -127,6 +183,16 @@ if (isset($_GET["hash"])) {
                     <p>(virheilmoitus: <?=$error?>)</p>
                 </div>
             <?php 
+                }
+
+                if ($pagestatus == 1) {
+            ?>
+                <div class='finish'>
+                    <h2>JIPPII!</h2>
+                    <p>Loit itsellesi uuden lyhytosoitteen, aivan mahtava juttu! Jatkossa voit käyttää seuraavaa osoitetta: <div class='code'><?=$shorturl?></div></p>
+                    <p>Voit tehdä uuden lyhytosoitteen <a href="<?=$baseurl?>">täällä</a>.</p>
+                </div>
+            <?php
                 }
             ?>
         </main>
